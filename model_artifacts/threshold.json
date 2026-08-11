@@ -1,0 +1,7 @@
+{
+  "optimal_threshold": 0.78,
+  "metric": "F1-optimised on held-out test set",
+  "f1_at_threshold": 0.6323,
+  "auc_roc": 0.8670226466836637,
+  "recall_at_threshold": 0.5577395577395577
+}

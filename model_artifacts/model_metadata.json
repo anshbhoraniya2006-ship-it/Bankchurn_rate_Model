@@ -1,0 +1,38 @@
+{
+  "model_name": "Bank Churn ANN v3",
+  "model_file": "best_ann_v3.keras",
+  "framework": "TensorFlow/Keras",
+  "architecture": "Sequential ANN (Keras Tuner Hyperband-optimised)",
+  "oversampling": "SMOTE (training only)",
+  "cross_validation": "5-fold StratifiedKFold",
+  "threshold_strategy": "F1-optimal on held-out test set",
+  "feature_names": [
+    "CreditScore",
+    "Age",
+    "Tenure",
+    "Balance",
+    "NumOfProducts",
+    "HasCrCard",
+    "IsActiveMember",
+    "EstimatedSalary",
+    "Geography_Germany",
+    "Geography_Spain",
+    "Gender_Male"
+  ],
+  "categorical_encoding": "get_dummies with drop_first=True",
+  "numerical_scaling": "StandardScaler (fit on train, transform on test)",
+  "target_column": "Exited",
+  "training_notes": "ANN v3: Keras Tuner (Hyperband), SMOTE, StratifiedKFold CV, SHAP explainability, EarlyStopping + ReduceLROnPlateau",
+  "raw_input_fields": [
+    "CreditScore",
+    "Geography",
+    "Gender",
+    "Age",
+    "Tenure",
+    "Balance",
+    "NumOfProducts",
+    "HasCrCard",
+    "IsActiveMember",
+    "EstimatedSalary"
+  ]
+}
