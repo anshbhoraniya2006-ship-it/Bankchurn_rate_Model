@@ -5,7 +5,6 @@
 [![TensorFlow/Keras](https://img.shields.io/badge/TensorFlow%2FKeras-2.15%2B-FF6F00.svg?logo=tensorflow&logoColor=white)](https://www.tensorflow.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg?logo=react&logoColor=white)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-5.0%2B-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 An enterprise-grade Customer Churn Prediction Engine powered by an **Artificial Neural Network (v3)** trained with **SMOTE oversampling**, **5-fold stratified cross-validation**, and **F1-optimal threshold tuning (0.78)**. Paired with a modern React + Vite glassmorphism Web Studio and FastAPI REST backend.
 
