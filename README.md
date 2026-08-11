@@ -23,14 +23,14 @@ An enterprise-grade Customer Churn Prediction Engine powered by an **Artificial 
 
 ```mermaid
 graph TD
-    User([Bank Officer / Analyst]) -->|HTTP / React UI| Frontend[React + Vite Web App]
-    Frontend -->|REST API Requests| FastAPI[FastAPI Backend - Port 8000]
-    FastAPI -->|Input Schema Validation| Pydantic[Pydantic v2 Models]
-    Pydantic -->|Preprocess & Scale| Preprocessor[StandardScaler + OHE Vectorizer]
-    Preprocessor -->|Feature Matrix| ANN[Keras Sequential ANN v3]
-    ANN -->|Raw Churn Probability| Predictor[ChurnPredictor Service]
-    Predictor -->|F1 Optimal Cutoff (0.78)| RiskEngine[Risk Classification & Insights Engine]
-    RiskEngine -->|JSON Response| Frontend
+    User(["Bank Officer / Analyst"]) -->|"HTTP / React UI"| Frontend["React + Vite Web App"]
+    Frontend -->|"REST API Requests"| FastAPI["FastAPI Backend - Port 8000"]
+    FastAPI -->|"Input Schema Validation"| Pydantic["Pydantic v2 Models"]
+    Pydantic -->|"Preprocess & Scale"| Preprocessor["StandardScaler + OHE Vectorizer"]
+    Preprocessor -->|"Feature Matrix"| ANN["Keras Sequential ANN v3"]
+    ANN -->|"Raw Churn Probability"| Predictor["ChurnPredictor Service"]
+    Predictor -->|"F1 Optimal Cutoff (0.78)"| RiskEngine["Risk Classification & Insights Engine"]
+    RiskEngine -->|"JSON Response"| Frontend
 ```
 
 ---
