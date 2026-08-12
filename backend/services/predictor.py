@@ -74,7 +74,11 @@ class ChurnPredictor:
             raise RuntimeError(f"Model file not found: {MODEL_PATH}")
 
         import tensorflow as tf  # Deferred import — TF is heavy
-        self._model = tf.keras.models.load_model(MODEL_PATH)
+        try:
+            self._model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+        except Exception as e:
+            logger.warning("  [WARN] load_model with compile=False failed (%s), retrying default load_model...", e)
+            self._model = tf.keras.models.load_model(MODEL_PATH)
         self._loaded = True
         logger.info("  [OK] Model loaded: %s", MODEL_PATH)
 
