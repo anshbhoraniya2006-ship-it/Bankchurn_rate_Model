@@ -149,3 +149,32 @@ Open **[http://localhost:5173/](http://localhost:5173/)** in your browser.
 - **Cross-Validation**: 5-Fold Stratified `KFold` cross-validation.
 - **Classification Threshold**: F1-Optimal threshold tuned to **0.78** on held-out test data to maximize recall for high-value churners while balancing precision.
 
+---
+
+## 🚂 Railway Deployment Guide
+
+This project is fully configured for zero-config deployment on **[Railway](https://railway.app)** using Docker.
+
+### Method 1: GitHub Deployment (Recommended)
+1. Push your repository to GitHub.
+2. Log into [Railway.app](https://railway.app) and click **"New Project"**.
+3. Choose **"Deploy from GitHub repo"** and select your `Bank churnrate` repository.
+4. Railway will automatically detect the multi-stage `Dockerfile` and `railway.json`.
+5. Once deployed, click **"Generate Domain"** under service settings to get your live public URL!
+
+### Method 2: Railway CLI Deployment
+```bash
+# Install Railway CLI
+npm i -g @railway/cli
+
+# Login and link project
+railway login
+railway init
+
+# Deploy to Railway
+railway up
+```
+
+---
+
+
