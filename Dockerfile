@@ -36,5 +36,5 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 # Expose port (Railway automatically overrides PORT at runtime)
 EXPOSE 8000
 
-# Run FastAPI backend using uvicorn
-CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Run FastAPI backend using Python entrypoint (handles PORT env var safely)
+CMD ["python", "-m", "backend.main"]
