@@ -19,6 +19,8 @@ SCALER_PATH = ARTIFACTS_DIR / "scaler.pkl"
 FEATURE_NAMES_PATH = ARTIFACTS_DIR / "feature_names.pkl"
 THRESHOLD_PATH = ARTIFACTS_DIR / "threshold.json"
 METADATA_PATH = ARTIFACTS_DIR / "model_metadata.json"
+WEIGHTS_PATH = ARTIFACTS_DIR / "weights.json"
+
 
 # ─── Default Inference Settings ───────────────────────────────────────────────
 DEFAULT_THRESHOLD = 0.38          # Fallback if threshold.json not found

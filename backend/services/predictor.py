@@ -5,6 +5,8 @@ ChurnPredictor — the single source of truth for model loading and inference.
 
 Design choices:
   - Loaded once at app startup via FastAPI lifespan (not per-request).
+  - Supports ultra-fast pure NumPy inference runner (zero TF dependency, no OOM)
+    with TensorFlow fallback if needed.
   - All model artifacts (model, scaler, feature_names, threshold) are
     encapsulated here so routers stay thin and do zero ML logic.
   - Stateless predict methods: take raw Pydantic objects, return typed dicts.
@@ -28,8 +30,10 @@ from backend.config import (
     SCALER_PATH,
     THRESHOLD_PATH,
     METADATA_PATH,
+    WEIGHTS_PATH,
 )
 from backend.models.schemas import CustomerFeatures, PredictionResponse, RiskLevel
+from backend.services.numpy_model import NumPyANNModel
 from backend.utils.preprocessing import preprocess_batch, preprocess_single
 
 logger = logging.getLogger(__name__)
@@ -62,62 +66,99 @@ class ChurnPredictor:
         self._metadata: dict = {}
         self._loaded: bool = False
         self._artifacts_loaded: bool = False
+        self._engine: str = "none"
+        self._load_error: Optional[str] = None
 
     # ─── Loading ──────────────────────────────────────────────────────────────
 
     def load(self) -> None:
-        """Load all artifacts. Raises RuntimeError if the model file is missing."""
+        """Load all artifacts. Uses NumPy runner if weights.json is present for maximum speed & stability."""
         logger.info("Loading ChurnPredictor artifacts …")
+        self._load_error = None
 
-        # 1. Keras model (required)
-        if not Path(MODEL_PATH).exists():
-            raise RuntimeError(f"Model file not found: {MODEL_PATH}")
+        # 1. Model loading (Try NumPy model runner first, then TensorFlow)
+        if Path(WEIGHTS_PATH).exists():
+            try:
+                self._model = NumPyANNModel(WEIGHTS_PATH)
+                self._loaded = True
+                self._engine = "numpy"
+                logger.info("  [OK] Model loaded using ultra-fast NumPy engine: %s", WEIGHTS_PATH)
+            except Exception as e:
+                logger.warning("  [WARN] Failed to load NumPy model weights: %s. Trying TensorFlow...", e)
+                self._load_error = f"NumPy load error: {e}"
 
-        import tensorflow as tf  # Deferred import — TF is heavy
-        try:
-            self._model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-        except Exception as e:
-            logger.warning("  [WARN] load_model with compile=False failed (%s), retrying default load_model...", e)
-            self._model = tf.keras.models.load_model(MODEL_PATH)
-        self._loaded = True
-        logger.info("  [OK] Model loaded: %s", MODEL_PATH)
+        if not self._loaded and Path(MODEL_PATH).exists():
+            try:
+                import tensorflow as tf
+                try:
+                    self._model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+                except Exception as e_comp:
+                    logger.warning("  [WARN] load_model compile=False failed (%s), retrying default...", e_comp)
+                    self._model = tf.keras.models.load_model(MODEL_PATH)
+                self._loaded = True
+                self._engine = "tensorflow"
+                logger.info("  [OK] Model loaded using TensorFlow engine: %s", MODEL_PATH)
+            except Exception as e:
+                err_msg = f"TensorFlow load error: {e}"
+                logger.error("  [ERROR] %s", err_msg)
+                self._load_error = (self._load_error + "; " + err_msg) if self._load_error else err_msg
 
-        # 2. Scaler (required for valid inference)
+        if not self._loaded:
+            if not Path(WEIGHTS_PATH).exists() and not Path(MODEL_PATH).exists():
+                self._load_error = f"Neither {WEIGHTS_PATH} nor {MODEL_PATH} exist."
+            logger.error("  [ERROR] Model loading failed completely. Load error: %s", self._load_error)
+
+        # 2. Scaler (independent try-except)
         if Path(SCALER_PATH).exists():
-            with open(SCALER_PATH, "rb") as f:
-                self._scaler = pickle.load(f)
-            logger.info("  [OK] Scaler loaded: %s", SCALER_PATH)
+            try:
+                with open(SCALER_PATH, "rb") as f:
+                    self._scaler = pickle.load(f)
+                logger.info("  [OK] Scaler loaded: %s", SCALER_PATH)
+            except Exception as e:
+                logger.error("  [ERROR] Failed to load scaler: %s", e)
         else:
             logger.warning("  [WARN] Scaler not found at %s — run export_artifacts.py first.", SCALER_PATH)
 
-        # 3. Feature names (required)
+        # 3. Feature names (independent try-except)
         if Path(FEATURE_NAMES_PATH).exists():
-            with open(FEATURE_NAMES_PATH, "rb") as f:
-                self._feature_names = pickle.load(f)
-            logger.info("  [OK] Feature names loaded (%d features)", len(self._feature_names))
+            try:
+                with open(FEATURE_NAMES_PATH, "rb") as f:
+                    self._feature_names = pickle.load(f)
+                logger.info("  [OK] Feature names loaded (%d features)", len(self._feature_names))
+            except Exception as e:
+                logger.error("  [ERROR] Failed to load feature names: %s", e)
         else:
             logger.warning("  [WARN] Feature names not found — run export_artifacts.py first.")
 
         # 4. Threshold (optional, falls back to DEFAULT_THRESHOLD)
         if Path(THRESHOLD_PATH).exists():
-            with open(THRESHOLD_PATH) as f:
-                threshold_data = json.load(f)
-            self._threshold = threshold_data.get("optimal_threshold", DEFAULT_THRESHOLD)
-            self._threshold_metric = threshold_data.get("metric", "F1-optimised")
-            logger.info("  [OK] Threshold loaded: %.2f (%s)", self._threshold, self._threshold_metric)
+            try:
+                with open(THRESHOLD_PATH) as f:
+                    threshold_data = json.load(f)
+                self._threshold = threshold_data.get("optimal_threshold", DEFAULT_THRESHOLD)
+                self._threshold_metric = threshold_data.get("metric", "F1-optimised")
+                logger.info("  [OK] Threshold loaded: %.2f (%s)", self._threshold, self._threshold_metric)
+            except Exception as e:
+                logger.warning("  [WARN] Failed to read threshold.json: %s", e)
         else:
             logger.warning("  [WARN] Threshold file missing — using default: %.2f", self._threshold)
 
         # 5. Metadata (informational only)
         if Path(METADATA_PATH).exists():
-            with open(METADATA_PATH) as f:
-                self._metadata = json.load(f)
-            logger.info("  [OK] Metadata loaded.")
+            try:
+                with open(METADATA_PATH) as f:
+                    self._metadata = json.load(f)
+                logger.info("  [OK] Metadata loaded.")
+            except Exception as e:
+                logger.warning("  [WARN] Failed to read metadata.json: %s", e)
 
         self._artifacts_loaded = (
             self._scaler is not None and self._feature_names is not None
         )
-        logger.info("ChurnPredictor ready. Artifacts loaded: %s", self._artifacts_loaded)
+        logger.info(
+            "ChurnPredictor ready. Model loaded: %s (engine=%s) | Artifacts loaded: %s",
+            self._loaded, self._engine, self._artifacts_loaded,
+        )
 
     # ─── Properties ───────────────────────────────────────────────────────────
 
@@ -128,6 +169,14 @@ class ChurnPredictor:
     @property
     def artifacts_loaded(self) -> bool:
         return self._artifacts_loaded
+
+    @property
+    def engine(self) -> str:
+        return self._engine
+
+    @property
+    def load_error(self) -> Optional[str]:
+        return self._load_error
 
     @property
     def threshold(self) -> float:
@@ -162,47 +211,33 @@ class ChurnPredictor:
     def predict_single(self, customer: CustomerFeatures) -> PredictionResponse:
         """
         Predict churn for one customer.
-
-        Parameters
-        ----------
-        customer : CustomerFeatures — validated Pydantic model from the API
-
-        Returns
-        -------
-        PredictionResponse
         """
         if not self._loaded:
-            raise RuntimeError("Predictor not loaded. Call predictor.load() first.")
+            raise RuntimeError(f"Predictor not loaded. Load error: {self._load_error}")
         if not self._artifacts_loaded:
             raise RuntimeError(
                 "Scaler / feature names not found. Run export_artifacts.py first."
             )
 
         X = preprocess_single(customer, self._feature_names, self._scaler)
-        prob = float(self._model.predict(X, verbose=0).flatten()[0])
+        raw_pred = self._model.predict(X, verbose=0)
+        prob = float(np.asarray(raw_pred).flatten()[0])
         return self._build_response(prob)
 
     def predict_batch(self, customers: list[CustomerFeatures]) -> list[PredictionResponse]:
         """
         Predict churn for a batch of customers.
-
-        Parameters
-        ----------
-        customers : list of CustomerFeatures
-
-        Returns
-        -------
-        list of PredictionResponse (same order as input)
         """
         if not self._loaded:
-            raise RuntimeError("Predictor not loaded. Call predictor.load() first.")
+            raise RuntimeError(f"Predictor not loaded. Load error: {self._load_error}")
         if not self._artifacts_loaded:
             raise RuntimeError(
                 "Scaler / feature names not found. Run export_artifacts.py first."
             )
 
         X = preprocess_batch(customers, self._feature_names, self._scaler)
-        probs = self._model.predict(X, verbose=0).flatten()
+        raw_pred = self._model.predict(X, verbose=0)
+        probs = np.asarray(raw_pred).flatten()
         return [self._build_response(p) for p in probs]
 
 

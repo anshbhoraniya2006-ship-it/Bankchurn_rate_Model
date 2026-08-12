@@ -153,7 +153,10 @@ class HealthResponse(BaseModel):
     status: str = "ok"
     model_loaded: bool
     artifacts_loaded: bool
+    engine: str = "none"
+    load_error: str | None = None
     timestamp: str
+
 
 
 class ModelInfoResponse(BaseModel):

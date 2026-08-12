@@ -35,8 +35,11 @@ async def health_check(request: Request) -> HealthResponse:
         status="ok",
         model_loaded=predictor.is_loaded,
         artifacts_loaded=predictor.artifacts_loaded,
+        engine=predictor.engine,
+        load_error=predictor.load_error,
         timestamp=datetime.now(timezone.utc).isoformat(),
     )
+
 
 
 @router.get(

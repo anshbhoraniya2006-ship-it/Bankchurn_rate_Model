@@ -168,6 +168,25 @@ with open(metadata_path, "w") as f:
     json.dump(metadata, f, indent=2)
 print(f"   [OK] {metadata_path}")
 
+# 7e. Lightweight NumPy model weights
+if 'model' in locals() and model is not None:
+    try:
+        weights_data = {}
+        for i, l in enumerate(model.layers):
+            w_list = l.get_weights()
+            if w_list:
+                weights_data[f"layer_{i}_{l.name}"] = {
+                    "class": l.__class__.__name__,
+                    "weights": [w.tolist() for w in w_list],
+                }
+        weights_path = os.path.join(ARTIFACTS_DIR, "weights.json")
+        with open(weights_path, "w") as f:
+            json.dump(weights_data, f)
+        print(f"   [OK] {weights_path}")
+    except Exception as w_err:
+        print(f"   [WARN] Could not export weights.json: {w_err}")
+
+
 # ---- Summary -----------------------------------------------------------------
 print("\n" + "=" * 55)
 print("  ALL ARTIFACTS EXPORTED SUCCESSFULLY")
