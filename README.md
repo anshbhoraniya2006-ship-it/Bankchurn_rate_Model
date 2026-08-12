@@ -1,10 +1,14 @@
 # 🏦 ApexBank Churn AI — Customer Retention Intelligence Studio
 
+[![Live App](https://img.shields.io/badge/Live%20App-Railway-purple?style=for-the-badge&logo=railway)](https://bankchurnratemodel.up.railway.app/app/)
+[![API Docs](https://img.shields.io/badge/Swagger%20Docs-FastAPI-009688?style=for-the-badge&logo=fastapi)](https://bankchurnratemodel.up.railway.app/docs)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111%2B-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![TensorFlow/Keras](https://img.shields.io/badge/TensorFlow%2FKeras-2.15%2B-FF6F00.svg?logo=tensorflow&logoColor=white)](https://www.tensorflow.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg?logo=react&logoColor=white)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-5.0%2B-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
+
+> 🌐 **Live Web Application**: [https://bankchurnratemodel.up.railway.app/app/](https://bankchurnratemodel.up.railway.app/app/)  
+> ⚡ **Interactive Swagger API Docs**: [https://bankchurnratemodel.up.railway.app/docs](https://bankchurnratemodel.up.railway.app/docs)  
+> 🩺 **Backend Health Endpoint**: [https://bankchurnratemodel.up.railway.app/health](https://bankchurnratemodel.up.railway.app/health)
 
 An enterprise-grade Customer Churn Prediction Engine powered by an **Artificial Neural Network (v3)** trained with **SMOTE oversampling**, **5-fold stratified cross-validation**, and **F1-optimal threshold tuning (0.78)**. Paired with a modern React + Vite glassmorphism Web Studio and FastAPI REST backend.
 
@@ -27,7 +31,7 @@ graph TD
     Frontend -->|"REST API Requests"| FastAPI["FastAPI Backend - Port 8000"]
     FastAPI -->|"Input Schema Validation"| Pydantic["Pydantic v2 Models"]
     Pydantic -->|"Preprocess & Scale"| Preprocessor["StandardScaler + OHE Vectorizer"]
-    Preprocessor -->|"Feature Matrix"| ANN["Keras Sequential ANN v3"]
+    Preprocessor -->|"Feature Matrix"| ANN["NumPy / Keras Sequential ANN v3"]
     ANN -->|"Raw Churn Probability"| Predictor["ChurnPredictor Service"]
     Predictor -->|"F1 Optimal Cutoff (0.78)"| RiskEngine["Risk Classification & Insights Engine"]
     RiskEngine -->|"JSON Response"| Frontend
@@ -48,7 +52,8 @@ Bank churnrate/
 │   │   ├── health.py         # Health probes & model info endpoints
 │   │   └── predict.py        # Single & batch prediction routes
 │   ├── services/
-│   │   └── predictor.py      # ChurnPredictor singleton & inference logic
+│   │   ├── numpy_model.py    # Ultra-fast pure NumPy ANN inference engine
+│   │   └── predictor.py      # ChurnPredictor singleton & hybrid inference logic
 │   └── utils/
 │       └── preprocessing.py  # Data scaling & one-hot encoding transformers
 ├── frontend/
@@ -67,6 +72,7 @@ Bank churnrate/
 │   └── vite.config.js
 ├── model_artifacts/
 │   ├── best_ann_v3.keras     # Trained Keras Sequential model
+│   ├── weights.json          # Extracted lightweight layer parameters
 │   ├── scaler.pkl            # Fitted StandardScaler
 │   ├── feature_names.pkl     # Feature vector names list
 │   ├── threshold.json        # F1-optimal threshold (0.78)
@@ -81,11 +87,18 @@ Bank churnrate/
 
 ## 🚀 Quick Start Guide
 
-### Prerequisites
+### 🌐 Live Production Application
+Access the deployed app directly without local setup:
+- **Web App**: [https://bankchurnratemodel.up.railway.app/app/](https://bankchurnratemodel.up.railway.app/app/)
+- **API Documentation**: [https://bankchurnratemodel.up.railway.app/docs](https://bankchurnratemodel.up.railway.app/docs)
+
+### Local Setup
+
+#### Prerequisites
 - **Python 3.10+**
 - **Node.js 18+** & **npm**
 
-### 1. Install Dependencies
+#### 1. Install Dependencies
 
 **Python Dependencies:**
 ```bash
@@ -98,9 +111,9 @@ cd frontend
 npm install
 ```
 
-### 2. Build Frontend & Run Server
+#### 2. Build Frontend & Run Server
 
-#### Option A: Production Single-Server Mode (Recommended)
+##### Option A: Production Single-Server Mode (Recommended)
 Build the React frontend into static assets and let FastAPI serve both the REST API and Web Studio:
 
 ```bash
@@ -114,7 +127,7 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 Open **[http://127.0.0.1:8000/app/](http://127.0.0.1:8000/app/)** in your browser.
 
-#### Option B: Independent Development Mode (Hot-Reloading)
+##### Option B: Independent Development Mode (Hot-Reloading)
 Run backend and frontend dev servers concurrently:
 
 ```bash
@@ -153,7 +166,11 @@ Open **[http://localhost:5173/](http://localhost:5173/)** in your browser.
 
 ## 🚂 Railway Deployment Guide
 
-This project is fully configured for zero-config deployment on **[Railway](https://railway.app)** using Docker.
+This project is deployed live on **[Railway](https://railway.app)**:
+
+- 🌐 **Live Web Application**: [https://bankchurnratemodel.up.railway.app/app/](https://bankchurnratemodel.up.railway.app/app/)
+- 📖 **Interactive API Specs**: [https://bankchurnratemodel.up.railway.app/docs](https://bankchurnratemodel.up.railway.app/docs)
+- 🩺 **Health Check Probe**: [https://bankchurnratemodel.up.railway.app/health](https://bankchurnratemodel.up.railway.app/health)
 
 ### Method 1: GitHub Deployment (Recommended)
 1. Push your repository to GitHub.
@@ -174,7 +191,3 @@ railway init
 # Deploy to Railway
 railway up
 ```
-
----
-
-
