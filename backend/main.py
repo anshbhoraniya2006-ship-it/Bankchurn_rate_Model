@@ -54,21 +54,22 @@ async def lifespan(app: FastAPI):
     Load the ChurnPredictor (Keras model + artifacts) once at startup
     and make it available through app.state for all request handlers.
     """
+    import asyncio
+
     logger.info("=" * 55)
     logger.info("  [START] Bank Churn Prediction API — Starting up")
     logger.info("=" * 55)
 
+    app.state.predictor = predictor
+
     try:
-        predictor.load()
-        app.state.predictor = predictor
+        await asyncio.to_thread(predictor.load)
         logger.info("[OK] ChurnPredictor ready.")
     except Exception as exc:
-        logger.error("[ERROR] Failed to load model: %s", exc)
+        logger.error("[ERROR] Failed to load model: %s", exc, exc_info=True)
         logger.warning(
             "API will start but /predict endpoints will return 503 until artifacts are present."
         )
-        # Still store the (unloaded) predictor so health endpoint shows correct state
-        app.state.predictor = predictor
 
     yield  # Application runs here
 

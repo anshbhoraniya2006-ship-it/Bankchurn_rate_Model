@@ -17,7 +17,7 @@ export default function App() {
 
   useEffect(() => {
     checkHealth();
-    const interval = setInterval(checkHealth, 15000);
+    const interval = setInterval(checkHealth, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -27,18 +27,15 @@ export default function App() {
 
       {healthStatus && (!healthStatus.model_loaded || !healthStatus.artifacts_loaded) && (
         <div style={{
-          background: 'rgba(239, 68, 68, 0.15)',
-          borderBottom: '1px solid rgba(239, 68, 68, 0.3)',
-          color: '#f87171',
+          background: 'rgba(245, 158, 11, 0.15)',
+          borderBottom: '1px solid rgba(245, 158, 11, 0.3)',
+          color: '#fbbf24',
           padding: '10px 24px',
           textAlign: 'center',
           fontSize: '0.875rem',
           fontWeight: 600
         }}>
-          ⚠️ Fast API Backend is not connected or model artifacts are missing. Make sure to run 
-          <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px', margin: '0 4px' }}>
-            python -m uvicorn backend.main:app --reload --port 8000
-          </code>
+          ⏳ ML Engine is initializing TensorFlow model artifacts in background... Please wait a few seconds.
         </div>
       )}
 
