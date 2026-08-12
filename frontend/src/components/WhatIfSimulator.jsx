@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { predictSingle } from '../api';
-import { Sliders, TrendingDown, TrendingUp } from 'lucide-react';
+import { Sliders, TrendingDown, TrendingUp, RotateCcw } from 'lucide-react';
 
 const INITIAL_BASE = {
   CreditScore: 580,
@@ -17,7 +17,8 @@ const INITIAL_BASE = {
 
 export default function WhatIfSimulator() {
   const [baseCustomer, setBaseCustomer] = useState(INITIAL_BASE);
-  const [simCustomer, setSimCustomer] = useState({ ...INITIAL_BASE, IsActiveMember: 1, NumOfProducts: 2 });
+  const [simCustomer, setSimCustomer] = useState(INITIAL_BASE);
+  const [activePreset, setActivePreset] = useState('none');
   
   const [baseResult, setBaseResult] = useState(null);
   const [simResult, setSimResult] = useState(null);
@@ -43,28 +44,41 @@ export default function WhatIfSimulator() {
   };
 
   useEffect(() => {
-    evaluateScenarios();
+    // Automatically evaluate initial scenario on mount
+    evaluateScenarios(INITIAL_BASE, INITIAL_BASE);
   }, []);
 
   const handleSimChange = (field, value) => {
     const updatedSim = { ...simCustomer, [field]: value };
     setSimCustomer(updatedSim);
+    setActivePreset('custom');
     evaluateScenarios(baseCustomer, updatedSim);
   };
 
   const applyActionPreset = (actionType) => {
-    let updatedSim = { ...simCustomer };
+    if (actionType === 'none' || activePreset === actionType) {
+      // Toggle off back to baseline
+      const resetSim = { ...baseCustomer };
+      setSimCustomer(resetSim);
+      setActivePreset('none');
+      evaluateScenarios(baseCustomer, resetSim);
+      return;
+    }
+
+    let updatedSim = { ...baseCustomer };
     if (actionType === 'activate') {
       updatedSim.IsActiveMember = 1;
     } else if (actionType === 'add_product') {
-      updatedSim.NumOfProducts = 2;
+      updatedSim.NumOfProducts = baseCustomer.NumOfProducts === 1 ? 2 : Math.min(4, baseCustomer.NumOfProducts + 1);
     } else if (actionType === 'both') {
       updatedSim.IsActiveMember = 1;
-      updatedSim.NumOfProducts = 2;
+      updatedSim.NumOfProducts = Math.max(2, baseCustomer.NumOfProducts);
     } else if (actionType === 'credit') {
-      updatedSim.CreditScore = Math.min(850, updatedSim.CreditScore + 120);
+      updatedSim.CreditScore = Math.min(900, baseCustomer.CreditScore + 120);
     }
+
     setSimCustomer(updatedSim);
+    setActivePreset(actionType);
     evaluateScenarios(baseCustomer, updatedSim);
   };
 
@@ -87,24 +101,77 @@ export default function WhatIfSimulator() {
         </p>
       </div>
 
+      {/* Error Alert */}
+      {error && (
+        <div style={{
+          padding: '14px 18px',
+          borderRadius: '12px',
+          background: 'rgba(239, 68, 68, 0.15)',
+          border: '1px solid rgba(239, 68, 68, 0.4)',
+          color: '#fca5a5',
+          marginBottom: '24px',
+          fontSize: '0.9rem'
+        }}>
+          ⚠️ {error}
+        </div>
+      )}
+
       {/* Action Presets */}
       <div className="glass-card" style={{ padding: '20px', marginBottom: '28px' }}>
-        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '12px' }}>
-          Quick Intervention Presets
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
+            Quick Intervention Presets
+          </div>
+          {activePreset !== 'none' && (
+            <span className="badge badge-low" style={{ fontSize: '0.75rem' }}>
+              Active Preset: {activePreset.toUpperCase()}
+            </span>
+          )}
         </div>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button onClick={() => applyActionPreset('activate')} className="btn-secondary">
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => applyActionPreset('activate')}
+            className={activePreset === 'activate' ? 'btn-primary' : 'btn-secondary'}
+          >
             ⚡ Activate Member Status
           </button>
-          <button onClick={() => applyActionPreset('add_product')} className="btn-secondary">
+
+          <button
+            type="button"
+            onClick={() => applyActionPreset('add_product')}
+            className={activePreset === 'add_product' ? 'btn-primary' : 'btn-secondary'}
+          >
             📦 Cross-Sell 2nd Bank Product
           </button>
-          <button onClick={() => applyActionPreset('both')} className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
+
+          <button
+            type="button"
+            onClick={() => applyActionPreset('both')}
+            className={activePreset === 'both' ? 'btn-primary' : 'btn-secondary'}
+            style={{ padding: '10px 20px', fontSize: '0.9rem' }}
+          >
             🚀 Full Retention Combo (Active + Product 2)
           </button>
-          <button onClick={() => applyActionPreset('credit')} className="btn-secondary">
+
+          <button
+            type="button"
+            onClick={() => applyActionPreset('credit')}
+            className={activePreset === 'credit' ? 'btn-primary' : 'btn-secondary'}
+          >
             📈 Credit Score Boost (+120 Pts)
           </button>
+
+          {activePreset !== 'none' && (
+            <button
+              type="button"
+              onClick={() => applyActionPreset('none')}
+              className="btn-secondary"
+              style={{ background: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)', color: '#fca5a5' }}
+            >
+              <RotateCcw size={14} /> Reset Baseline
+            </button>
+          )}
         </div>
       </div>
 
@@ -178,7 +245,7 @@ export default function WhatIfSimulator() {
             <h3 style={{ fontSize: '1.1rem', color: 'var(--accent-cyan)' }}>
               Simulated Intervention State
             </h3>
-            <span className="badge badge-low">Interactive</span>
+            <span className="badge badge-low">{loading ? 'Evaluating...' : 'Interactive'}</span>
           </div>
 
           {/* Controls */}
@@ -248,7 +315,9 @@ export default function WhatIfSimulator() {
               borderRadius: '12px',
               background: 'rgba(6, 182, 212, 0.08)',
               border: '1px solid rgba(6, 182, 212, 0.3)',
-              textAlign: 'center'
+              textAlign: 'center',
+              opacity: loading ? 0.6 : 1,
+              transition: 'opacity 0.2s ease'
             }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
                 Simulated Risk Score
